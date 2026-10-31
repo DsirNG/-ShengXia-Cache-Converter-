@@ -17,7 +17,7 @@
 
 - `gui.py`：独立 Tkinter 图形界面。
 - `process_cache.py`：缓存处理模块，默认路径使用当前用户目录，可通过环境变量覆盖。
-- `assets/shengxia.svg`：矢量 logo 源文件。
+- `assets/shengxia.png`：声匣图形 logo。
 - `assets/shengxia.ico`：Windows 程序和安装包图标。
 - `installer/shengxia.iss`：Inno Setup 安装包配置。
 - `build.ps1`：构建便携程序并生成单文件安装包。
@@ -42,7 +42,7 @@
 
 也可以设置 `MPV_CORE_DIR`、`FFMPEG_BIN_DIR`、`INNO_SETUP_COMPILER` 后运行 `.\build.ps1`。
 
-构建出的安装包在 `artifacts\ShengXiaCacheConverter-Setup-0.1.0-x64.exe`。安装程序默认安装到当前用户的 `%LOCALAPPDATA%\Programs\ShengXiaCacheConverter`，不需要管理员权限。
+构建出的安装包在 `artifacts\ShengXiaCacheConverter-Setup-0.1.1-x64.exe`。安装程序默认安装到当前用户的 `%LOCALAPPDATA%\Programs\ShengXiaCacheConverter`，不需要管理员权限。
 
 ## 数据与网络
 

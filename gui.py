@@ -51,6 +51,17 @@ class App(tk.Tk):
         self.limit_var = tk.StringVar(value="0")
         self.force_var = tk.BooleanVar(value=False)
         self.status_var = tk.StringVar(value="就绪")
+        self.brand_icon = None
+        bundle = Path(getattr(sys, "_MEIPASS", Path(__file__).resolve().parent))
+        logo_path = bundle / "assets" / "shengxia.png"
+        if logo_path.is_file():
+            try:
+                original_icon = tk.PhotoImage(file=str(logo_path))
+                shrink = max(1, (original_icon.width() + 63) // 64)
+                self.brand_icon = original_icon.subsample(shrink, shrink)
+                self.iconphoto(True, self.brand_icon)
+            except tk.TclError:
+                self.brand_icon = None
         self._build_ui()
         self.after(100, self._drain_messages)
 
@@ -69,7 +80,11 @@ class App(tk.Tk):
 
         root = ttk.Frame(self, padding=20)
         root.pack(fill="both", expand=True)
-        ttk.Label(root, text="声匣缓存转换器", style="Title.TLabel").pack(anchor="w")
+        brand_row = ttk.Frame(root)
+        brand_row.pack(anchor="w")
+        if self.brand_icon is not None:
+            ttk.Label(brand_row, image=self.brand_icon).pack(side="left", padx=(0, 10))
+        ttk.Label(brand_row, text="声匣缓存转换器", style="Title.TLabel").pack(side="left")
         ttk.Label(root, text="选择 .uc 缓存目录和输出目录，转换为系统播放器可播放的 MP3。", style="Hint.TLabel").pack(anchor="w", pady=(4, 16))
 
         self._folder_row(root, "缓存目录", self.source_var, self._choose_source)

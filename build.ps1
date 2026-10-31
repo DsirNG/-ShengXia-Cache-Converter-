@@ -45,6 +45,7 @@ $pyArgs = @(
     '--specpath', $spec,
     '--icon', (Join-Path $root 'assets\shengxia.ico'),
     '--add-data', "$MpvCoreDir;tools/mpv",
+    '--add-data', "$root\assets\shengxia.png;assets",
     '--add-data', "$ffmpeg;tools/ffmpeg",
     '--add-data', "$ffprobe;tools/ffmpeg",
     (Join-Path $root 'gui.py')
@@ -52,7 +53,17 @@ $pyArgs = @(
 & $python.Source @pyArgs
 if ($LASTEXITCODE -ne 0) { throw "PyInstaller failed with exit code $LASTEXITCODE" }
 
+# Keep the notices for bundled third-party binaries alongside the installed app.
+$licenseRoot = Join-Path $dist '声匣缓存转换器\_internal\licenses'
+$ffmpegLicenseDir = Join-Path $licenseRoot 'FFmpeg-Gyan'
+$mpvLicenseDir = Join-Path $licenseRoot 'Yaoplayer-mpv-Yaozhi'
+$null = New-Item -ItemType Directory -Force -Path $ffmpegLicenseDir, $mpvLicenseDir
+Copy-Item -LiteralPath (Join-Path (Split-Path $FfmpegBinDir -Parent) 'LICENSE') -Destination $ffmpegLicenseDir -Force
+Copy-Item -LiteralPath (Join-Path (Split-Path $FfmpegBinDir -Parent) 'README.txt') -Destination $ffmpegLicenseDir -Force
+Copy-Item -LiteralPath (Join-Path $root 'vendor-tools\licenses\mpv-Yaozhi\LICENSE.md') -Destination $mpvLicenseDir -Force
+Copy-Item -LiteralPath (Join-Path $root 'OPEN_SOURCE.md') -Destination $licenseRoot -Force
+
 & $IsccPath (Join-Path $root 'installer\shengxia.iss')
 if ($LASTEXITCODE -ne 0) { throw "Inno Setup failed with exit code $LASTEXITCODE" }
 
-Write-Host "Installer created: $(Join-Path $root 'artifacts\ShengXiaCacheConverter-Setup-0.1.0-x64.exe')"
+Write-Host "Installer created: $(Join-Path $root 'artifacts\ShengXiaCacheConverter-Setup-0.1.1-x64.exe')"

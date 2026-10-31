@@ -1,11 +1,12 @@
 ﻿#define AppName "声匣缓存转换器"
-#define AppVersion "0.1.0"
+#define AppVersion "0.1.1"
 #define AppExeName "声匣缓存转换器.exe"
 
 [Setup]
 AppId={{A6D3A9D1-5B28-4E86-9E2E-03C974DC9331}
 AppName={#AppName}
 AppVersion={#AppVersion}
+LicenseFile=..\LICENSE
 AppPublisher=声匣
 DefaultDirName={localappdata}\Programs\ShengXiaCacheConverter
 DefaultGroupName={#AppName}
