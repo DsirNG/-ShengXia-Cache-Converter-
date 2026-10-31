@@ -1,5 +1,5 @@
 ﻿#define AppName "声匣缓存转换器"
-#define AppVersion "0.1.1"
+#define AppVersion "0.1.2"
 #define AppExeName "声匣缓存转换器.exe"
 
 [Setup]

@@ -46,7 +46,10 @@ XOR_TABLE = bytes.maketrans(bytes(range(256)), bytes((b ^ 0xA3) for b in range(2
 
 
 def request(url: str, timeout: int = 20) -> bytes:
-    req = urllib.request.Request(url, headers={"User-Agent": "AuralCachePrep/1.0"})
+    req = urllib.request.Request(url, headers={
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/131 Safari/537.36",
+        "Referer": "https://music.163.com/",
+    })
     with urllib.request.urlopen(req, timeout=timeout) as response:
         return response.read()
 
@@ -70,6 +73,31 @@ def get_metadata(song_id: str, cache_dir: Path) -> dict:
     cache_file.write_text(json.dumps(raw, ensure_ascii=False, indent=2), encoding="utf-8")
     time.sleep(0.35)
     return raw
+
+
+def get_album_details(song_id: str) -> tuple[str, str]:
+    """Fetch album name and ID from NetEase song detail when Meting omits them."""
+    encoded_id = urllib.parse.quote(song_id, safe="")
+    ids = urllib.parse.quote(f"[{song_id}]", safe="")
+    url = f"https://music.163.com/api/song/detail/?id={encoded_id}&ids={ids}"
+    try:
+        payload = json.loads(request(url, timeout=15).decode("utf-8-sig"))
+        songs = payload.get("songs", []) if isinstance(payload, dict) else []
+        song = songs[0] if songs and isinstance(songs[0], dict) else {}
+        album = song.get("al") or song.get("album") or {}
+        if isinstance(album, dict):
+            return text_value(album.get("name")), text_value(album.get("id"))
+    except (OSError, UnicodeError, json.JSONDecodeError, urllib.error.URLError, AttributeError):
+        pass
+    return "", ""
+
+
+def album_values(meta: dict) -> tuple[str, str]:
+    """Read common album shapes returned by music metadata providers."""
+    album = meta.get("album") or meta.get("al") or {}
+    if isinstance(album, dict):
+        return text_value(album.get("name")), text_value(album.get("id"))
+    return text_value(album), text_value(meta.get("album_id"))
 
 
 def text_value(value) -> str:
@@ -226,12 +254,21 @@ def main() -> int:
         meta = get_metadata(song_id, metadata_dir)
         title = text_value(meta.get("name")) or f"Unknown title {song_id}"
         artist = text_value(meta.get("artist")) or "Unknown artist"
-        album = text_value(meta.get("album"))
+        album, album_id = album_values(meta)
+        if not album:
+            album, album_id = get_album_details(song_id)
+            if album:
+                meta["album"] = album
+                if album_id:
+                    meta["album_id"] = album_id
+                (metadata_dir / f"{song_id}.json").write_text(
+                    json.dumps(meta, ensure_ascii=False, indent=2), encoding="utf-8")
         stem = safe_name(f"{artist} - {title}", song_id)
         mp3 = audio_dir / f"{stem}.mp3"
         ready_mp3 = ready_dir / mp3.name
         decoded = temp_dir / f"{song_id}.audio"
         record = {"song_id": song_id, "title": title, "artist": artist, "album": album,
+                  "album_id": album_id,
                   "cache_file": cache_file.name, "cache_variants": [p.name for p in variants],
                   "mp3_path": str(mp3), "ready_to_upload_path": str(ready_mp3),
                   "status": "pending", "error": ""}

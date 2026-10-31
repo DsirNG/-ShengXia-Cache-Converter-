@@ -42,7 +42,7 @@
 
 也可以设置 `MPV_CORE_DIR`、`FFMPEG_BIN_DIR`、`INNO_SETUP_COMPILER` 后运行 `.\build.ps1`。
 
-构建出的安装包在 `artifacts\ShengXiaCacheConverter-Setup-0.1.1-x64.exe`。安装程序默认安装到当前用户的 `%LOCALAPPDATA%\Programs\ShengXiaCacheConverter`，不需要管理员权限。
+构建出的安装包在 `artifacts\ShengXiaCacheConverter-Setup-0.1.2-x64.exe`。安装程序默认安装到当前用户的 `%LOCALAPPDATA%\Programs\ShengXiaCacheConverter`，不需要管理员权限。
 
 ## 数据与网络
 

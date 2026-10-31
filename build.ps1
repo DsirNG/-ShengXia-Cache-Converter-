@@ -66,4 +66,4 @@ Copy-Item -LiteralPath (Join-Path $root 'OPEN_SOURCE.md') -Destination $licenseR
 & $IsccPath (Join-Path $root 'installer\shengxia.iss')
 if ($LASTEXITCODE -ne 0) { throw "Inno Setup failed with exit code $LASTEXITCODE" }
 
-Write-Host "Installer created: $(Join-Path $root 'artifacts\ShengXiaCacheConverter-Setup-0.1.1-x64.exe')"
+Write-Host "Installer created: $(Join-Path $root 'artifacts\ShengXiaCacheConverter-Setup-0.1.2-x64.exe')"
