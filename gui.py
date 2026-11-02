@@ -50,6 +50,7 @@ class App(tk.Tk):
         self.output_var = tk.StringVar(value=str(DEFAULT_OUTPUT))
         self.limit_var = tk.StringVar(value="0")
         self.force_var = tk.BooleanVar(value=False)
+        self.quality_var = tk.StringVar(value="MP3 320 kbps（推荐，兼容性好）")
         self.status_var = tk.StringVar(value="就绪")
         self.brand_icon = None
         bundle = Path(getattr(sys, "_MEIPASS", Path(__file__).resolve().parent))
@@ -85,7 +86,7 @@ class App(tk.Tk):
         if self.brand_icon is not None:
             ttk.Label(brand_row, image=self.brand_icon).pack(side="left", padx=(0, 10))
         ttk.Label(brand_row, text="声匣缓存转换器", style="Title.TLabel").pack(side="left")
-        ttk.Label(root, text="选择 .uc 缓存目录和输出目录，转换为系统播放器可播放的 MP3。", style="Hint.TLabel").pack(anchor="w", pady=(4, 16))
+        ttk.Label(root, text="选择 .uc 缓存目录和输出目录，转换为高品质 MP3 或 FLAC。", style="Hint.TLabel").pack(anchor="w", pady=(4, 16))
 
         self._folder_row(root, "缓存目录", self.source_var, self._choose_source)
         self._folder_row(root, "输出目录", self.output_var, self._choose_output)
@@ -95,7 +96,11 @@ class App(tk.Tk):
         ttk.Label(opts, text="处理数量（0 = 全部）").pack(side="left")
         ttk.Entry(opts, textvariable=self.limit_var, width=8).pack(side="left", padx=(10, 22))
         ttk.Label(opts, text="联网补全歌名、歌手、封面和歌词").pack(side="left")
-        ttk.Checkbutton(root, text="覆盖已生成的 MP3", variable=self.force_var).pack(anchor="w", pady=(7, 0))
+        quality = ttk.Frame(root)
+        quality.pack(fill="x", pady=(7, 0))
+        ttk.Label(quality, text="输出品质").pack(side="left")
+        ttk.Combobox(quality, textvariable=self.quality_var, state="readonly", width=36, values=("MP3 320 kbps（推荐，兼容性好）", "FLAC（保留解码后的立体声音频）")).pack(side="left", padx=10)
+        ttk.Checkbutton(root, text="覆盖同格式的已有文件（重新转换时勾选）", variable=self.force_var).pack(anchor="w", pady=(7, 0))
         ttk.Label(root, text="处理时会按原脚本行为联网查询歌曲信息，并可能获取封面和歌词；音频解码与转换在本机完成。", style="Hint.TLabel", wraplength=720).pack(anchor="w", pady=(5, 10))
 
         actions = ttk.Frame(root)
@@ -163,9 +168,10 @@ class App(tk.Tk):
         self.status_var.set("正在处理…")
         self.spinner.start(12)
         force = self.force_var.get()
-        threading.Thread(target=self._worker, args=(source, output, limit, force), daemon=True).start()
+        output_format = "flac" if self.quality_var.get().startswith("FLAC") else "mp3"
+        threading.Thread(target=self._worker, args=(source, output, limit, force, output_format), daemon=True).start()
 
-    def _worker(self, source: Path, output: Path, limit: int, force: bool) -> None:
+    def _worker(self, source: Path, output: Path, limit: int, force: bool, output_format: str) -> None:
         try:
             bundle = Path(getattr(sys, "_MEIPASS", Path(__file__).resolve().parent))
             mpv = bundle / "tools" / "mpv" / "Yaoplayer.com"
@@ -176,7 +182,7 @@ class App(tk.Tk):
                     raise FileNotFoundError(f"缺少{label}：{path}")
             args = ["process_cache.py", "--source", str(source), "--output", str(output),
                     "--mpv", str(mpv), "--ffmpeg", str(ffmpeg), "--ffprobe", str(ffprobe),
-                    "--limit", str(limit)]
+                    "--limit", str(limit), "--format", output_format]
             if force:
                 args.append("--force")
             old_argv = sys.argv

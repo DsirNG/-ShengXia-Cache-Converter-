@@ -3,8 +3,7 @@
 
 This script is local-first: it never uploads files to AURAL. It chooses the
 largest cache file for each numeric song ID, decodes .uc with XOR 0xA3, asks a
-public metadata endpoint for available tags/cover/lyrics, converts to 128 kbps
-stereo MP3 with the AV3A-capable mpv-Yaozhi core, and writes a review manifest.
+public metadata endpoint for available tags/cover/lyrics, converts to high-quality stereo MP3 or FLAC with the AV3A-capable mpv-Yaozhi core, and writes a review manifest.
 """
 
 from __future__ import annotations
@@ -184,7 +183,7 @@ def fetch_cover(url: str, destination: Path, ffprobe: Path) -> bool:
 def prepare_upload_audio(source: Path, destination: Path) -> None:
     """Expose the checked audio in ready_to_upload without duplicating bytes when possible."""
     if destination.exists():
-        return
+        destination.unlink()
     try:
         os.link(source, destination)
     except OSError:
@@ -219,8 +218,11 @@ def main() -> int:
     parser.add_argument("--ffprobe", type=Path, default=DEFAULT_FFPROBE)
     parser.add_argument("--limit", type=int, default=0, help="Process only first N unique IDs (trial run)")
     parser.add_argument("--keep-decoded", action="store_true", help="Keep temporary XOR-decoded source files")
-    parser.add_argument("--force", action="store_true", help="Rebuild existing MP3s")
+    parser.add_argument("--force", action="store_true", help="Rebuild existing output files")
+    parser.add_argument("--format", choices=("mp3", "flac"), default="mp3", help="MP3 320 kbps (default) or FLAC")
     args = parser.parse_args()
+    for key in ("source", "output", "mpv", "ffmpeg", "ffprobe"):
+        setattr(args, key, getattr(args, key).expanduser().resolve())
 
     for label, path in (("source directory", args.source), ("mpv core", args.mpv),
                         ("ffmpeg", args.ffmpeg), ("ffprobe", args.ffprobe)):
@@ -264,37 +266,52 @@ def main() -> int:
                 (metadata_dir / f"{song_id}.json").write_text(
                     json.dumps(meta, ensure_ascii=False, indent=2), encoding="utf-8")
         stem = safe_name(f"{artist} - {title}", song_id)
-        mp3 = audio_dir / f"{stem}.mp3"
+        mp3 = audio_dir / f"{stem}.{args.format}"
         ready_mp3 = ready_dir / mp3.name
         decoded = temp_dir / f"{song_id}.audio"
         record = {"song_id": song_id, "title": title, "artist": artist, "album": album,
                   "album_id": album_id,
                   "cache_file": cache_file.name, "cache_variants": [p.name for p in variants],
-                  "mp3_path": str(mp3), "ready_to_upload_path": str(ready_mp3),
+                  "audio_path": str(mp3), "ready_to_upload_path": str(ready_mp3),
                   "status": "pending", "error": ""}
         try:
             if args.force or not mp3.exists() or mp3.stat().st_size < 4096:
                 decode_uc(cache_file, decoded)
                 source_info = probe_audio(args.ffprobe, decoded)
-                temp_mp3 = temp_dir / f"{song_id}.mp3"
+                # Keep peaks above 0 dBFS in floating point until we can measure them.
+                temp_mp3 = temp_dir / f"{song_id}-float.wav"
                 converted = run(
-                    [str(args.mpv), "--no-config", "--no-video", f"--o={temp_mp3}", "--of=mp3",
-                     "--oac=libmp3lame", "--oacopts=b=128000", "--audio-channels=stereo",
+                    [str(args.mpv), "--no-config", "--no-video", f"--o={temp_mp3}", "--of=wav",
+                     "--oac=pcm_f32le", "--audio-channels=stereo",
                      "--msg-level=all=warn", str(decoded)], args.mpv.parent, 900,
                 )
                 if converted.returncode or not temp_mp3.exists() or temp_mp3.stat().st_size < 4096:
                     raise RuntimeError(converted.stderr.strip()[-1200:] or "mpv conversion failed")
+                measured = run([str(args.ffmpeg), "-hide_banner", "-nostats", "-i", str(temp_mp3),
+                                "-af", "astats=metadata=0:reset=0", "-f", "null", os.devnull], args.ffmpeg.parent, 900)
+                peaks = re.findall(r"Peak level dB:\s*([-+0-9.eE]+)", measured.stderr)
+                if measured.returncode or not peaks:
+                    raise RuntimeError("Could not measure decoded audio peak; conversion stopped")
+                peak_db = max(float(x) for x in peaks)
+                attenuation_db = max(0.0, peak_db + 1.0)
+                record.update({"decoded_peak_dbfs": round(peak_db, 3), "attenuation_db": round(attenuation_db, 3)})
+                print(f"  峰值 {peak_db:.2f} dBFS；降低 {attenuation_db:.2f} dB 避免削波", flush=True)
 
                 cover_path = cover_dir / f"{song_id}.jpg"
                 got_cover = fetch_cover(text_value(meta.get("pic")), cover_path, args.ffprobe)
-                tagged = temp_dir / f"{song_id}-tagged.mp3"
+                tagged = temp_dir / f"{song_id}-tagged.{args.format}"
                 cmd = [str(args.ffmpeg), "-hide_banner", "-loglevel", "error", "-y", "-i", str(temp_mp3)]
                 if got_cover:
                     cmd += ["-i", str(cover_path), "-map", "0:a", "-map", "1:v", "-c:v", "mjpeg",
                             "-metadata:s:v", "title=Album cover", "-metadata:s:v", "comment=Cover (front)"]
                 else:
                     cmd += ["-map", "0:a"]
-                cmd += ["-c:a", "copy", "-id3v2_version", "3", "-metadata", f"title={title}",
+                cmd += ["-af", f"volume=-{attenuation_db:.4f}dB", "-c:a", "libmp3lame" if args.format == "mp3" else "flac"]
+                if args.format == "mp3":
+                    cmd += ["-b:a", "320k"]
+                if args.format == "mp3":
+                    cmd += ["-id3v2_version", "3"]
+                cmd += ["-metadata", f"title={title}",
                         "-metadata", f"artist={artist}", "-metadata", f"album={album}", str(tagged)]
                 tagged_result = run(cmd, args.ffmpeg.parent, 120)
                 if tagged_result.returncode or not tagged.exists():
@@ -308,7 +325,7 @@ def main() -> int:
             verified = probe_audio(args.ffprobe, mp3)
             prepare_upload_audio(mp3, ready_mp3)
             record.update({"status": "ready", "output_duration_seconds": verified["duration_seconds"],
-                           "output_format": verified["format"], "output_codec": "mp3",
+                           "output_format": verified["format"], "output_codec": verified["source_codec"],
                            "output_bytes": mp3.stat().st_size})
             lrc_url = text_value(meta.get("lrc"))
             if lrc_url:
