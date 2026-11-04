@@ -1,19 +1,7 @@
 #!/bin/bash
 set -euo pipefail
 stage="$1"
-mkdir -p "$stage/src" "$stage/static" "$stage/encoder"
-curl -fL --retry 3 https://ffmpeg.org/releases/ffmpeg-9.0.2.tar.xz -o "$stage/ffmpeg-src.tar.xz"
-tar -xf "$stage/ffmpeg-src.tar.xz" -C "$stage/src"
-lame="$(brew --prefix lame)"
-cp "$lame/lib/libmp3lame.a" "$stage/static/"
-cd "$stage/src/ffmpeg-9.0.2"
-./configure --prefix="$stage/encoder" --disable-everything --disable-autodetect \
-  --disable-doc --disable-debug --disable-x86asm --disable-shared --enable-static --enable-ffmpeg \
-  --enable-libmp3lame --enable-zlib --extra-cflags="-I$lame/include" --extra-ldflags="-L$stage/static" \
-  --enable-protocol=file,pipe --enable-demuxer=wav,image2,jpeg_pipe,png_pipe,mjpeg \
-  --enable-decoder=pcm_f32le,pcm_s16le,pcm_s24le,pcm_s32le,mjpeg,png \
-  --enable-encoder=flac,libmp3lame,mjpeg,pcm_s16le --enable-parser=mjpeg,png \
-  --enable-muxer=mp3,flac,null --enable-filter=astats,volume,aresample,aformat,anull,null,format,scale || { tail -100 ffbuild/config.log; exit 1; }
-make -j3
-cp ffmpeg "$stage/encoder/ffmpeg"
-cp COPYING.LGPLv2.1 "$stage/encoder/FFmpeg-LICENSE"
+tag=mpv-iina-avs-ffmpeg-9.0.2-mpv-v0.41.0-20261023-033837
+curl -fL --retry 3 "https://raw.githubusercontent.com/nilaoda/mpv-iina-avs/$tag/tools/package_macho_bundle.rb" -o "$stage/package_macho_bundle.rb"
+ruby "$stage/package_macho_bundle.rb" "$stage/encoder" "$(brew --prefix)" -- "$(command -v ffmpeg)"
+"$stage/encoder/bin/ffmpeg" -version

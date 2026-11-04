@@ -34,7 +34,7 @@ for tool in (ffmpeg, ffprobe):
     tool.chmod(0o755)
     run(tool, "-version")
 run("bash", ROOT / "build_encoder_macos.sh", stage)
-encoder = stage / "encoder/ffmpeg"
+encoder = stage / "encoder/bin/ffmpeg"
 codecs = subprocess.check_output([str(ffmpeg), "-hide_banner", "-decoders"], text=True)
 if "av3a" not in codecs.lower():
     raise RuntimeError("AV3A decoder missing")
@@ -75,10 +75,12 @@ run("iconutil", "-c", "icns", iconset, "-o", icon)
 run(sys.executable, "-m", "PyInstaller", "--noconfirm", "--clean", "--windowed", "--onedir",
     "--name", "ShengXia", "--icon", icon, "--osx-bundle-identifier", "com.shengxia.cacheconverter",
     "--distpath", stage / "dist", "--workpath", stage / "pyinstaller", "--specpath", stage,
-    "--add-binary", f"{encoder}:tools/encoder",
-    "--add-data", f"{tools}:tools/ffmpeg", "--add-data", f"{licenses}:licenses",
+    "--add-data", f"{licenses}:licenses",
     "--add-data", f"{ROOT / 'assets/shengxia.png'}:assets", ROOT / "gui.py")
 app = stage / "dist/ShengXia.app"
+# Keep each relocatable tool dependency tree intact; never flatten same-name dylibs.
+run("ditto", tools, app / "Contents/Resources/tools/ffmpeg")
+run("ditto", stage / "encoder", app / "Contents/Resources/tools/encoder")
 plist_path = app / "Contents/Info.plist"
 with plist_path.open("rb") as f:
     info = plistlib.load(f)
