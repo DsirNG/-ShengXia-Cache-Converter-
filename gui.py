@@ -13,12 +13,14 @@ from pathlib import Path
 import tkinter as tk
 from tkinter import filedialog, messagebox, ttk
 
+from runtime_support import default_cache_dir, tool_paths, open_path
+
 import process_cache
 from cache_quality import resolve_cache_quality
 
 
 APP_TITLE = "声匣缓存转换器"
-DEFAULT_SOURCE = Path.home() / "AppData/Local/NetEase/CloudMusic/Cache/Cache"
+DEFAULT_SOURCE = default_cache_dir()
 DEFAULT_OUTPUT = Path.home() / "Documents/声匣转换结果"
 
 
@@ -95,16 +97,17 @@ class App(tk.Tk):
 
     def _build_ui(self) -> None:
         style = ttk.Style(self)
+        ui_font = "Helvetica Neue" if sys.platform == "darwin" else "Microsoft YaHei UI"
         try:
             style.theme_use("vista")
         except tk.TclError:
             pass
         style.configure("TFrame", background="#f4f7f5")
-        style.configure("Title.TLabel", font=("Microsoft YaHei UI", 18, "bold"), background="#f4f7f5", foreground="#18352b")
-        style.configure("Hint.TLabel", font=("Microsoft YaHei UI", 9), background="#f4f7f5", foreground="#596b62")
-        style.configure("TLabel", background="#f4f7f5", font=("Microsoft YaHei UI", 10))
-        style.configure("TButton", font=("Microsoft YaHei UI", 10), padding=(10, 6))
-        style.configure("Accent.TButton", font=("Microsoft YaHei UI", 10, "bold"), padding=(16, 8))
+        style.configure("Title.TLabel", font=(ui_font, 18, "bold"), background="#f4f7f5", foreground="#18352b")
+        style.configure("Hint.TLabel", font=(ui_font, 9), background="#f4f7f5", foreground="#596b62")
+        style.configure("TLabel", background="#f4f7f5", font=(ui_font, 10))
+        style.configure("TButton", font=(ui_font, 10), padding=(10, 6))
+        style.configure("Accent.TButton", font=(ui_font, 10, "bold"), padding=(16, 8))
 
         root = ttk.Frame(self, padding=20)
         root.pack(fill="both", expand=True)
@@ -257,9 +260,7 @@ class App(tk.Tk):
     def _worker(self, source: Path, output: Path, limit: int, force: bool, output_format: str) -> None:
         try:
             bundle = Path(getattr(sys, "_MEIPASS", Path(__file__).resolve().parent))
-            mpv = bundle / "tools" / "mpv" / "Yaoplayer.com"
-            ffmpeg = bundle / "tools" / "ffmpeg" / "ffmpeg.exe"
-            ffprobe = bundle / "tools" / "ffmpeg" / "ffprobe.exe"
+            mpv, ffmpeg, ffprobe = tool_paths(bundle)
             for label, path in (("AV3A 解码器", mpv), ("FFmpeg", ffmpeg), ("FFprobe", ffprobe)):
                 if not path.exists():
                     raise FileNotFoundError(f"缺少{label}：{path}")
@@ -335,7 +336,7 @@ class App(tk.Tk):
         path = Path(self.output_var.get().strip())
         if path.exists():
             import os
-            os.startfile(path)
+            open_path(path)
         else:
             messagebox.showinfo(APP_TITLE, "输出目录尚未创建；开始转换后会自动创建。")
 
@@ -385,7 +386,7 @@ class App(tk.Tk):
         if not path.is_absolute():
             path = Path(self.output_var.get().strip()).expanduser() / path
         if path.is_file():
-            os.startfile(path)
+            open_path(path)
         else:
             messagebox.showwarning(APP_TITLE, f"找不到音频文件：\n{path}")
 

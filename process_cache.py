@@ -9,6 +9,7 @@ public metadata endpoint for available tags/cover/lyrics, converts to high-quali
 from __future__ import annotations
 
 from cache_quality import resolve_cache_quality
+from runtime_support import default_cache_dir
 
 import argparse
 import json
@@ -27,7 +28,7 @@ from pathlib import Path
 PROJECT_DIR = Path(__file__).resolve().parent
 DEFAULT_SOURCE = Path(os.environ.get(
     "NETEASE_CACHE_DIR",
-    Path.home() / "AppData" / "Local" / "NetEase" / "CloudMusic" / "Cache" / "Cache",
+    default_cache_dir(),
 ))
 DEFAULT_OUTPUT = Path(os.environ.get(
     "NETEASE_OUTPUT_DIR",
@@ -373,11 +374,13 @@ def main() -> int:
                 # Keep peaks above 0 dBFS in floating point until we can measure them.
                 if not preserve_source:
                     temp_mp3 = temp_dir / f"{song_id}-float.wav"
-                    converted = run(
-                        [str(args.mpv), "--no-config", "--no-video", f"--o={temp_mp3}", "--of=wav",
-                         "--oac=pcm_f32le", "--audio-channels=stereo",
-                         "--msg-level=all=warn", str(decoded)], args.mpv.parent, 900,
-                    )
+                    decode_cmd = ([str(args.ffmpeg), "-v", "error", "-y", "-i", str(decoded),
+                                   "-vn", "-ac", "2", "-c:a", "pcm_f32le", str(temp_mp3)]
+                                  if sys.platform == "darwin" else
+                                  [str(args.mpv), "--no-config", "--no-video", f"--o={temp_mp3}", "--of=wav",
+                                   "--oac=pcm_f32le", "--audio-channels=stereo",
+                                   "--msg-level=all=warn", str(decoded)])
+                    converted = run(decode_cmd, args.ffmpeg.parent if sys.platform == "darwin" else args.mpv.parent, 900)
                     if converted.returncode or not temp_mp3.exists() or temp_mp3.stat().st_size < 4096:
                         raise RuntimeError(converted.stderr.strip()[-1200:] or "mpv conversion failed")
                     pause_checkpoint()
