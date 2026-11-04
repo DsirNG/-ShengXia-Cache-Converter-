@@ -1,0 +1,29 @@
+name: Publish checked macOS DMGs
+on:
+  workflow_dispatch:
+    inputs:
+      run_id:
+        description: Successful Build macOS DMG run ID
+        required: true
+permissions:
+  contents: write
+  actions: read
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Download verified build and publish
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          RUN_ID: ${{ inputs.run_id }}
+        run: |
+          set -euo pipefail
+          test "$(gh api "repos/$GH_REPO/actions/runs/$RUN_ID" --jq '.conclusion')" = success
+          gh run download "$RUN_ID" --pattern 'ShengXia-macOS-*' --dir downloads
+          mkdir -p release
+          find downloads -name '*.dmg' -exec cp {} release/ \;
+          test "$(find release -name '*.dmg' | wc -l)" -eq 2
+          (cd release && sha256sum *.dmg > SHA256SUMS.txt)
+          gh release create v0.1.7 release/* --target "$GITHUB_SHA" --title '声匣 0.1.7 macOS' --notes-file MACOS.md
