@@ -4,3 +4,6 @@ build/
 dist/
 artifacts/
 .venv/
+
+work/
+*.log

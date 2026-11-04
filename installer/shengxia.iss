@@ -1,5 +1,5 @@
 ﻿#define AppName "声匣缓存转换器"
-#define AppVersion "0.1.2"
+#define AppVersion "0.1.6"
 #define AppExeName "声匣缓存转换器.exe"
 
 [Setup]
@@ -9,6 +9,7 @@ AppVersion={#AppVersion}
 LicenseFile=..\LICENSE
 AppPublisher=声匣
 DefaultDirName={localappdata}\Programs\ShengXiaCacheConverter
+DisableDirPage=no
 DefaultGroupName={#AppName}
 UninstallDisplayName={#AppName}
 UninstallDisplayIcon={app}\{#AppExeName}
@@ -20,7 +21,7 @@ WizardStyle=modern
 SetupIconFile=..\assets\shengxia.ico
 OutputDir=..\artifacts
 OutputBaseFilename=ShengXiaCacheConverter-Setup-{#AppVersion}-x64
-Compression=lzma2/ultra64
+Compression=lzma2/fast
 SolidCompression=yes
 Uninstallable=yes
 CloseApplications=yes
