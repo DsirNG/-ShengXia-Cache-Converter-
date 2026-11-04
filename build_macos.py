@@ -3,6 +3,7 @@ import hashlib
 import json
 import os
 import platform
+import plistlib
 import shutil
 import subprocess
 import sys
@@ -62,13 +63,29 @@ run(sys.executable, "-c", "import tkinter as tk; w=tk.Tk(); w.update(); w.destro
 licenses = stage / "licenses"
 licenses.mkdir(exist_ok=True)
 (licenses / "macOS-tools.txt").write_text(f"FFmpeg/AV3A bundle: {url}\nSources/build scripts: https://github.com/nilaoda/mpv-iina-avs/tree/{TAG}\nAV3A SDK upstream notes research/education-only restrictions; see upstream README.\n")
+iconset = stage / "ShengXia.iconset"
+iconset.mkdir(exist_ok=True)
+for size in (16, 32, 128, 256, 512):
+    for scale in (1, 2):
+        suffix = "@2x" if scale == 2 else ""
+        run("sips", "-z", size * scale, size * scale, ROOT / "assets/shengxia.png",
+            "--out", iconset / f"icon_{size}x{size}{suffix}.png")
+icon = stage / "ShengXia.icns"
+run("iconutil", "-c", "icns", iconset, "-o", icon)
 run(sys.executable, "-m", "PyInstaller", "--noconfirm", "--clean", "--windowed", "--onedir",
-    "--name", "ShengXia", "--osx-bundle-identifier", "com.shengxia.cacheconverter",
+    "--name", "ShengXia", "--icon", icon, "--osx-bundle-identifier", "com.shengxia.cacheconverter",
     "--distpath", stage / "dist", "--workpath", stage / "pyinstaller", "--specpath", stage,
     "--add-binary", f"{encoder}:tools/encoder",
     "--add-data", f"{tools}:tools/ffmpeg", "--add-data", f"{licenses}:licenses",
     "--add-data", f"{ROOT / 'assets/shengxia.png'}:assets", ROOT / "gui.py")
 app = stage / "dist/ShengXia.app"
+plist_path = app / "Contents/Info.plist"
+with plist_path.open("rb") as f:
+    info = plistlib.load(f)
+info.update({"CFBundleDisplayName": "声匣缓存转换器", "CFBundleShortVersionString": VERSION,
+             "CFBundleVersion": VERSION, "NSHighResolutionCapable": True, "LSMinimumSystemVersion": "15.0"})
+with plist_path.open("wb") as f:
+    plistlib.dump(info, f)
 run("codesign", "--force", "--deep", "--sign", "-", app)
 run("codesign", "--verify", "--deep", "--strict", app)
 smoke_env = dict(os.environ, SHENGXIA_SMOKE_TEST="1")
