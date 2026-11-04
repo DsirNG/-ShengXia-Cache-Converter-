@@ -1,5 +1,7 @@
 # macOS 版本
 
+当前在 macOS 15 构建机验证；旧系统尚未验证。
+
 提供 Apple Silicon（arm64，M 系列）和 Intel（x86_64）两个独立 DMG，请按芯片下载。将 ShengXia.app 拖入 Applications 后启动。
 
 默认查找网易云容器的 online_play_cache；找不到时点击浏览，选择实际包含 .uc 或 .uc! 的目录。支持原音频还原、MP3、FLAC、缓存品质确认、暂停/继续以及打开输出目录。品质确认依赖同目录 .info 与资源标识、大小匹配；Mac 缓存缺少这些记录时会标为档位未知。

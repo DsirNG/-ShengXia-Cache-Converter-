@@ -1,5 +1,12 @@
 # 更新日志
 
+## 0.1.7（macOS）
+
+- 新增 Apple Silicon 与 Intel 独立 DMG，内置 AV3A 解码和通用编码工具。
+- 适配 Mac 缓存路径、.uc! 后缀、系统字体和 Finder 打开操作。
+- 增加 macOS 真机架构构建与三种转换模式、打包后启动检查。
+- 当前为临时签名，未使用 Apple Developer ID 公证；详见 MACOS.md。
+
 ## 0.1.6
 
 - 解析 .info 的原始 level 字段，以资源 MD5 和大小绑定具体缓存。

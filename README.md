@@ -4,7 +4,7 @@
 
 # 声匣缓存转换器
 
-我做声匣，是想把自己电脑里的网易云音乐缓存整理成能在本地播放器播放的文件。它是一款 Windows 桌面工具，支持把 .uc 缓存转换成 MP3 或 FLAC，也能补全歌曲信息、封面和歌词。
+我做声匣，是想把自己电脑里的网易云音乐缓存整理成能在本地播放器播放的文件。它是一款 Windows / macOS 桌面工具，支持把 .uc 缓存转换成 MP3 或 FLAC，也能补全歌曲信息、封面和歌词。
 
 最新版本：[v0.1.6 安装包](https://github.com/DsirNG/-ShengXia-Cache-Converter-/releases/tag/v0.1.6)。
 
