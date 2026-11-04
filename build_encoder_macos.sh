@@ -8,12 +8,12 @@ lame="$(brew --prefix lame)"
 cp "$lame/lib/libmp3lame.a" "$stage/static/"
 cd "$stage/src/ffmpeg-9.0.2"
 ./configure --prefix="$stage/encoder" --disable-everything --disable-autodetect \
-  --disable-doc --disable-debug --disable-shared --enable-static --enable-ffmpeg \
+  --disable-doc --disable-debug --disable-x86asm --disable-shared --enable-static --enable-ffmpeg \
   --enable-libmp3lame --enable-zlib --extra-cflags="-I$lame/include" --extra-ldflags="-L$stage/static" \
   --enable-protocol=file,pipe --enable-demuxer=wav,image2,jpeg_pipe,png_pipe,mjpeg \
   --enable-decoder=pcm_f32le,pcm_s16le,pcm_s24le,pcm_s32le,mjpeg,png \
   --enable-encoder=flac,libmp3lame,mjpeg,pcm_s16le --enable-parser=mjpeg,png \
-  --enable-muxer=mp3,flac,null --enable-filter=astats,volume,aresample,aformat,anull,null,format,scale
+  --enable-muxer=mp3,flac,null --enable-filter=astats,volume,aresample,aformat,anull,null,format,scale || { tail -100 ffbuild/config.log; exit 1; }
 make -j3
 cp ffmpeg "$stage/encoder/ffmpeg"
 cp COPYING.LGPLv2.1 "$stage/encoder/FFmpeg-LICENSE"
