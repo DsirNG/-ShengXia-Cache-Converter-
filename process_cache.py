@@ -288,7 +288,7 @@ def main() -> int:
         if not path.exists():
             print(f"ERROR: {label} not found: {path}", file=sys.stderr)
             return 2
-    files = sorted(args.source.glob("*.uc"))
+    files = sorted([*args.source.glob("*.uc"), *args.source.glob("*.uc!")])
     if not files:
         print(f"ERROR: no .uc files in {args.source}", file=sys.stderr)
         return 2
@@ -431,6 +431,7 @@ def main() -> int:
         except Exception as exc:  # retain per-track failures and continue the batch
             record["status"] = "failed"
             record["error"] = str(exc)
+            print(f"  转换失败：{exc}", flush=True)
         finally:
             if not args.keep_decoded:
                 decoded.unlink(missing_ok=True)
