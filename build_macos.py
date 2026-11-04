@@ -75,9 +75,11 @@ run("codesign", "--verify", "--deep", "--strict", app)
 smoke_env = dict(os.environ, SHENGXIA_SMOKE_TEST="1")
 subprocess.run([str(app / "Contents/MacOS/ShengXia")], env=smoke_env, check=True, timeout=30)
 for binary in app.glob("Contents/Resources/tools/**/ffmpeg"):
-    run(binary, "-version")
+    if binary.is_file():
+        run(binary, "-version")
 for binary in app.glob("Contents/Resources/tools/**/ffprobe"):
-    run(binary, "-version")
+    if binary.is_file():
+        run(binary, "-version")
 image = stage / "image"
 image.mkdir(exist_ok=True)
 run("ditto", app, image / "ShengXia.app")
