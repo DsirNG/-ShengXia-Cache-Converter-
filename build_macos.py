@@ -32,9 +32,8 @@ ffmpeg, ffprobe = tools / "bin/ffmpeg", tools / "bin/ffprobe"
 for tool in (ffmpeg, ffprobe):
     tool.chmod(0o755)
     run(tool, "-version")
-encoder = Path(shutil.which("ffmpeg") or "")
-if not encoder.is_file():
-    raise RuntimeError("Install FFmpeg with libmp3lame before building")
+run("bash", ROOT / "build_encoder_macos.sh", stage)
+encoder = stage / "encoder/ffmpeg"
 codecs = subprocess.check_output([str(ffmpeg), "-hide_banner", "-decoders"], text=True)
 if "av3a" not in codecs.lower():
     raise RuntimeError("AV3A decoder missing")
