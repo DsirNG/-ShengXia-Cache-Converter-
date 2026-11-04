@@ -12,7 +12,7 @@ AV3A 使用 mpv-iina-avs 的 macOS FFmpeg 解码，普通编码使用独立 FFmp
 
 ## 构建与验证
 
-在相应架构的 macOS 上安装 Python 3.12（含 Tk）、FFmpeg（含 libmp3lame），执行 `python -m pip install -r requirements-build.txt`，再执行 `python build_macos.py`。
+在相应架构的 macOS 上安装 Python 3.12（含 Tk）、Homebrew lame（提供静态 libmp3lame），执行 `python -m pip install -r requirements-build.txt`，再执行 `python build_macos.py`。
 
 GitHub Actions 的 Build macOS DMG 工作流分别构建两个架构，检查 AAC 原音频还原、MP3/FLAC 编码、元数据资源绑定、Tk 初始化、打包后的应用启动及工具依赖、签名完整性，最后生成 DMG。AV3A 解码器注册会被检查；不把个人歌曲上传为测试素材。CI 无法代替真实 Mac 上的人工交互与听音验收。
 

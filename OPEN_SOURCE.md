@@ -26,4 +26,4 @@
 
 ## macOS 工具包
 
-Mac 版固定使用 [nilaoda/mpv-iina-avs](https://github.com/nilaoda/mpv-iina-avs) 的 `mpv-iina-avs-ffmpeg-9.0.2-mpv-v0.41.0-20261023-033837` CLI bundle（GPL 变体）解码 AV3A，另打包 Homebrew FFmpeg 进行通用编码。上游 AV3A 解码源码说明限定研究与教育用途、未授权商业使用；本项目 MIT 许可证不改变这些限制。包内保留工具来源，完整源码、补丁和构建流程见上游仓库对应 tag。Mac 发行包尚未使用 Developer ID 签名与公证。
+Mac 版固定使用 [nilaoda/mpv-iina-avs](https://github.com/nilaoda/mpv-iina-avs) 的 `mpv-iina-avs-ffmpeg-9.0.2-mpv-v0.41.0-20261023-033837` CLI bundle（GPL 变体）解码 AV3A，另从 FFmpeg 9.0.2 源码构建静态编码器、链接 Homebrew lame 静态库进行通用编码。上游 AV3A 解码源码说明限定研究与教育用途、未授权商业使用；本项目 MIT 许可证不改变这些限制。包内保留工具来源，完整源码、补丁和构建流程见上游仓库对应 tag。Mac 发行包尚未使用 Developer ID 签名与公证。
