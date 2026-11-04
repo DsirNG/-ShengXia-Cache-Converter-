@@ -374,13 +374,13 @@ def main() -> int:
                 # Keep peaks above 0 dBFS in floating point until we can measure them.
                 if not preserve_source:
                     temp_mp3 = temp_dir / f"{song_id}-float.wav"
-                    decode_cmd = ([str(args.ffmpeg), "-v", "error", "-y", "-i", str(decoded),
+                    decode_cmd = ([str(args.mpv), "-v", "error", "-y", "-i", str(decoded),
                                    "-vn", "-ac", "2", "-c:a", "pcm_f32le", str(temp_mp3)]
                                   if sys.platform == "darwin" else
                                   [str(args.mpv), "--no-config", "--no-video", f"--o={temp_mp3}", "--of=wav",
                                    "--oac=pcm_f32le", "--audio-channels=stereo",
                                    "--msg-level=all=warn", str(decoded)])
-                    converted = run(decode_cmd, args.ffmpeg.parent if sys.platform == "darwin" else args.mpv.parent, 900)
+                    converted = run(decode_cmd, args.mpv.parent, 900)
                     if converted.returncode or not temp_mp3.exists() or temp_mp3.stat().st_size < 4096:
                         raise RuntimeError(converted.stderr.strip()[-1200:] or "mpv conversion failed")
                     pause_checkpoint()

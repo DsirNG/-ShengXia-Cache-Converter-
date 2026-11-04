@@ -32,6 +32,9 @@ ffmpeg, ffprobe = tools / "bin/ffmpeg", tools / "bin/ffprobe"
 for tool in (ffmpeg, ffprobe):
     tool.chmod(0o755)
     run(tool, "-version")
+encoder = Path(shutil.which("ffmpeg") or "")
+if not encoder.is_file():
+    raise RuntimeError("Install FFmpeg with libmp3lame before building")
 codecs = subprocess.check_output([str(ffmpeg), "-hide_banner", "-decoders"], text=True)
 if "av3a" not in codecs.lower():
     raise RuntimeError("AV3A decoder missing")
@@ -51,7 +54,7 @@ for mode in ("source", "mp3", "flac"):
     meta.mkdir(parents=True, exist_ok=True)
     (meta / "1.json").write_text(json.dumps({"name": "Fixture", "artist": "CI", "album": "CI"}))
     run(sys.executable, ROOT / "process_cache.py", "--source", cache, "--output", output,
-        "--format", mode, "--mpv", ffmpeg, "--ffmpeg", ffmpeg, "--ffprobe", ffprobe, "--force")
+        "--format", mode, "--mpv", ffmpeg, "--ffmpeg", encoder, "--ffprobe", ffprobe, "--force")
     track = json.loads((output / "catalog.json").read_text())["tracks"][0]
     assert track["status"] == "ready" and track["quality_status"] == "confirmed"
     run(ffmpeg, "-v", "error", "-i", track["audio_path"], "-f", "null", "-")
@@ -63,6 +66,7 @@ licenses.mkdir(exist_ok=True)
 run(sys.executable, "-m", "PyInstaller", "--noconfirm", "--clean", "--windowed", "--onedir",
     "--name", "ShengXia", "--osx-bundle-identifier", "com.shengxia.cacheconverter",
     "--distpath", stage / "dist", "--workpath", stage / "pyinstaller", "--specpath", stage,
+    "--add-binary", f"{encoder}:tools/encoder",
     "--add-data", f"{tools}:tools/ffmpeg", "--add-data", f"{licenses}:licenses",
     "--add-data", f"{ROOT / 'assets/shengxia.png'}:assets", ROOT / "gui.py")
 app = stage / "dist/ShengXia.app"

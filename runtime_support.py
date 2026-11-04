@@ -13,7 +13,7 @@ def default_cache_dir():
 def tool_paths(bundle):
     if sys.platform == "darwin":
         ffmpeg = bundle / "tools/ffmpeg/bin/ffmpeg"
-        return ffmpeg, ffmpeg, ffmpeg.with_name("ffprobe")
+        return ffmpeg, bundle / "tools/encoder/ffmpeg", ffmpeg.with_name("ffprobe")
     return bundle / "tools/mpv/Yaoplayer.com", bundle / "tools/ffmpeg/ffmpeg.exe", bundle / "tools/ffmpeg/ffprobe.exe"
 
 def open_path(path):
