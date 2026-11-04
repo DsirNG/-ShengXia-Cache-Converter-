@@ -1,6 +1,8 @@
 # macOS 版本
 
-当前在 macOS 15 构建机验证；旧系统尚未验证。
+需要 macOS 15 或更新系统；Apple Silicon 与 Intel 均已在 macOS 15 构建机通过转换和打包后启动检查。
+
+下载：[Apple Silicon DMG](https://github.com/DsirNG/-ShengXia-Cache-Converter-/releases/download/v0.1.7/ShengXia-0.1.7-macOS-arm64.dmg) · [Intel DMG](https://github.com/DsirNG/-ShengXia-Cache-Converter-/releases/download/v0.1.7/ShengXia-0.1.7-macOS-x86_64.dmg) · [校验文件](https://github.com/DsirNG/-ShengXia-Cache-Converter-/releases/download/v0.1.7/SHA256SUMS.txt)
 
 提供 Apple Silicon（arm64，M 系列）和 Intel（x86_64）两个独立 DMG，请按芯片下载。将 ShengXia.app 拖入 Applications 后启动。
 

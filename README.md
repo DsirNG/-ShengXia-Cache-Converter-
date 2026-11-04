@@ -10,7 +10,7 @@
 
 ## macOS
 
-新增 Apple Silicon 与 Intel 的原生 DMG 构建，包含音频工具。安装、缓存目录、签名状态和构建说明见 [MACOS.md](MACOS.md)。
+[macOS v0.1.7 下载](https://github.com/DsirNG/-ShengXia-Cache-Converter-/releases/tag/v0.1.7)：Apple Silicon 与 Intel 原生 DMG，包含音频工具，需要 macOS 15 或更新系统。安装、缓存目录、签名状态和构建说明见 [MACOS.md](MACOS.md)。
 
 ## 快速开始
 
