@@ -8,6 +8,10 @@
 
 最新版本：[v0.1.6 安装包](https://github.com/DsirNG/-ShengXia-Cache-Converter-/releases/tag/v0.1.6)。
 
+## macOS
+
+新增 Apple Silicon 与 Intel 的原生 DMG 构建，包含音频工具。安装、缓存目录、签名状态和构建说明见 [MACOS.md](MACOS.md)。
+
 ## 快速开始
 
 1. 在 [Releases](https://github.com/DsirNG/-ShengXia-Cache-Converter-/releases) 下载 Windows x64 安装包；如果尚未发布安装包，可按下方说明从源码构建。

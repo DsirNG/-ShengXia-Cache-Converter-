@@ -93,6 +93,8 @@ class App(tk.Tk):
             except tk.TclError:
                 self.brand_icon = None
         self._build_ui()
+        if os.environ.get("SHENGXIA_SMOKE_TEST") == "1":
+            self.after(500, self.destroy)
         self.after(100, self._drain_messages)
 
     def _build_ui(self) -> None:
