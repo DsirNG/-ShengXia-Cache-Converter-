@@ -417,4 +417,7 @@ class App(tk.Tk):
 
 
 if __name__ == "__main__":
+    if os.environ.get("NCM_CONVERTER_SELF_TEST"):
+        from bundle_selftest import run
+        raise SystemExit(run(App))
     App().mainloop()

@@ -1,0 +1,58 @@
+name: Build Windows installer
+on:
+  workflow_call:
+    inputs:
+      tools_release:
+        type: string
+        default: v0.2.0-rc.1
+        required: false
+  workflow_dispatch:
+    inputs:
+      tools_release:
+        description: Draft release containing windows-build-tools.zip
+        default: v0.2.0-rc.1
+        required: true
+permissions:
+  contents: read
+jobs:
+  build:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: python -m pip install -r requirements-build.txt
+      - name: Download audio build dependencies
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          New-Item -ItemType Directory -Force build | Out-Null
+          gh release download '${{ inputs.tools_release }}' --pattern windows-build-tools.zip --dir build
+          if ($LASTEXITCODE) { throw 'Could not download audio tools' }
+          Expand-Archive build/windows-build-tools.zip build/audio-tools
+      - name: Tests and build
+        shell: pwsh
+        run: |
+          $env:FFMPEG_BIN_DIR = Join-Path $PWD 'build/audio-tools/ffmpeg/bin'
+          python -m unittest discover -v
+          if ($LASTEXITCODE) { throw 'Tests failed' }
+          ./build.ps1 -MpvCoreDir (Join-Path $PWD 'build/audio-tools/mpv') -FfmpegBinDir $env:FFMPEG_BIN_DIR
+      - name: Install and verify packaged application
+        shell: pwsh
+        run: |
+          $installer = Get-Item artifacts/*-Setup.exe
+          $target = Join-Path $env:RUNNER_TEMP 'NCM Converter 安装测试'
+          $installed = Start-Process -FilePath $installer.FullName -ArgumentList @('/VERYSILENT','/SUPPRESSMSGBOXES','/NORESTART',('/DIR="' + $target + '"')) -WindowStyle Hidden -Wait -PassThru
+          if ($installed.ExitCode) { throw "Installation failed: $($installed.ExitCode)" }
+          python verify_bundle.py --app (Join-Path $target 'NCM-Converter.exe') --ffmpeg (Join-Path $target '_internal/tools/ffmpeg/ffmpeg.exe') --work (Join-Path $env:RUNNER_TEMP 'installed-conversion-check')
+          if ($LASTEXITCODE) { throw 'Installed app checks failed' }
+      - name: Portable ZIP
+        shell: pwsh
+        run: Compress-Archive -Path build/app/NCM-Converter -DestinationPath artifacts/NCM-Converter-0.2.0-rc.1-Windows-x64-Portable.zip
+      - uses: actions/upload-artifact@v4
+        with:
+          name: NCM-Converter-Windows-x64
+          path: artifacts/*
+          if-no-files-found: error

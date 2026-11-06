@@ -17,6 +17,7 @@ if (-not $IsccPath) {
     $candidates = @(
         (Join-Path ${env:ProgramFiles(x86)} 'Inno Setup 7\ISCC.exe'),
         (Join-Path $env:ProgramFiles 'Inno Setup 7\ISCC.exe')
+        (Join-Path ${env:ProgramFiles(x86)} 'Inno Setup 6\ISCC.exe')
     )
     $IsccPath = $candidates | Where-Object { Test-Path -LiteralPath $_ } | Select-Object -First 1
 }
@@ -40,7 +41,7 @@ $null = New-Item -ItemType Directory -Force -Path $dist, $work, $spec
 $pyArgs = @(
     '-m', 'PyInstaller', '--noconfirm', '--clean', '--onedir', '--windowed',
     '--copy-metadata', 'mutagen', '--copy-metadata', 'pycryptodome',
-    '--name', '声匣缓存转换器',
+    '--name', 'NCM-Converter',
     '--distpath', $dist,
     '--workpath', $work,
     '--specpath', $spec,
@@ -62,7 +63,7 @@ if ($sslPolicyFile) {
 if ($LASTEXITCODE -ne 0) { throw "PyInstaller failed with exit code $LASTEXITCODE" }
 
 # Keep the notices for bundled third-party binaries alongside the installed app.
-$licenseRoot = Join-Path $dist '声匣缓存转换器\_internal\licenses'
+$licenseRoot = Join-Path $dist 'NCM-Converter\_internal\licenses'
 $ffmpegLicenseDir = Join-Path $licenseRoot 'FFmpeg-Gyan'
 $mpvLicenseDir = Join-Path $licenseRoot 'Yaoplayer-mpv-Yaozhi'
 $null = New-Item -ItemType Directory -Force -Path $ffmpegLicenseDir, $mpvLicenseDir
@@ -70,8 +71,12 @@ Copy-Item -LiteralPath (Join-Path (Split-Path $FfmpegBinDir -Parent) 'LICENSE') 
 Copy-Item -LiteralPath (Join-Path (Split-Path $FfmpegBinDir -Parent) 'README.txt') -Destination $ffmpegLicenseDir -Force
 Copy-Item -LiteralPath (Join-Path $root 'vendor-tools\licenses\mpv-Yaozhi\LICENSE.md') -Destination $mpvLicenseDir -Force
 Copy-Item -LiteralPath (Join-Path $root 'OPEN_SOURCE.md') -Destination $licenseRoot -Force
+Copy-Item -LiteralPath (Join-Path $root 'LICENSE') -Destination (Join-Path $licenseRoot 'NCM-Converter-LICENSE.txt') -Force
+
+& $python.Source (Join-Path $root 'verify_bundle.py') --app (Join-Path $dist 'NCM-Converter\NCM-Converter.exe') --ffmpeg $ffmpeg --work (Join-Path $work 'bundle-check')
+if ($LASTEXITCODE -ne 0) { throw 'Packaged app conversion checks failed.' }
 
 & $IsccPath (Join-Path $root 'installer\shengxia.iss')
 if ($LASTEXITCODE -ne 0) { throw "Inno Setup failed with exit code $LASTEXITCODE" }
 
-Write-Host "Installer created: $(Join-Path $root 'artifacts\ShengXiaCacheConverter-Setup-0.1.6-x64.exe')"
+Write-Host "Installer created: $(Join-Path $root 'artifacts\NCM-Converter-0.2.0-rc.1-Windows-x64-Setup.exe')"
