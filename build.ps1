@@ -50,6 +50,13 @@ $pyArgs = @(
     '--add-data', "$ffprobe;tools/ffmpeg",
     (Join-Path $root 'gui.py')
 )
+# Some Python distributions load an additional trust-policy file from ssl.py.
+# Preserve that resource when freezing instead of changing TLS verification.
+$sslPolicyFile = & $python.Source -c "import ssl; from pathlib import Path; p = Path(ssl.__file__).with_name('codex-rejected-cas.pem'); print(str(p) if p.is_file() else '')"
+if ($LASTEXITCODE -ne 0) { throw 'Could not inspect Python SSL resources.' }
+if ($sslPolicyFile) {
+    $pyArgs += @('--add-data', "$($sslPolicyFile.Trim());.")
+}
 & $python.Source @pyArgs
 if ($LASTEXITCODE -ne 0) { throw "PyInstaller failed with exit code $LASTEXITCODE" }
 
