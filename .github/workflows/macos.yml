@@ -1,12 +1,21 @@
 name: Build Windows installer and macOS DMGs
 on:
   workflow_dispatch:
+    inputs:
+      platform:
+        type: choice
+        options: [all, windows, macos]
+        default: all
+permissions:
+  contents: write
 jobs:
   windows:
+    if: inputs.platform != 'macos'
     uses: ./.github/workflows/windows.yml
     with:
       tools_release: v0.2.0-rc.1
   build:
+    if: inputs.platform != 'windows'
     strategy:
       fail-fast: false
       matrix:
