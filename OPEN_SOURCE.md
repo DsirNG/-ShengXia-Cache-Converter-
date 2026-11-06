@@ -6,6 +6,12 @@
 
 本项目自有代码采用 [MIT License](LICENSE)，允许商业使用、复制、修改和再分发；再分发时需保留版权和许可声明。该许可证不覆盖下文列出的第三方组件，它们仍受各自许可证约束。
 
+## NCM 下载文件支持
+
+`ncm_decoder.py` 的容器解密算法移植自同作者 DsirNG 的 `aural-music/public/api/ncm.js`。
+本地 AES 解密依赖 PyCryptodome（BSD / Public Domain），MP3 / FLAC 标签写入依赖 Mutagen（GPL-2.0-or-later）。
+打包脚本收集两者的包元数据及随包许可证；项目自有代码的 MIT 许可不替代第三方组件的许可。
+
 ## 构建和运行组件
 
 | 组件 | 用途 | 当前情况 |

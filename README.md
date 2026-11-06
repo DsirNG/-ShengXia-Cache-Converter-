@@ -2,7 +2,26 @@
   <img src="assets/shengxia.png" alt="声匣 Logo" width="160">
 </p>
 
-# 声匣缓存转换器
+# NCM Converter
+
+网易云音乐缓存与下载文件转换工具，原名“声匣缓存转换器”。
+
+## 下载文件（.ncm）转换
+
+在“输入类型”选择“下载文件（.ncm）”，选择包含 NCM 文件的输入目录和独立的输出目录。
+默认推荐“还原源品质”：解密后保留原始 MP3 / FLAC 等音频编码，不重新压缩；也可以统一输出 MP3 或 FLAC。
+MP3 / FLAC 会保留 NCM 内嵌的歌名、歌手、专辑和封面，无需联网。支持当前目录批量转换，单个损坏文件不会中止其他文件。
+转换为 FLAC 不会提升有损源音质。输出文件名附带输入文件名摘要，避免同名歌曲互相覆盖。
+
+源码运行先安装 `python -m pip install -r requirements.txt`。命令行示例：
+
+```powershell
+python process_cache.py --input-type ncm --source 'C:\Music\Downloads' --output 'C:\Music\Converted' --format source --ffprobe 'C:\tools\ffprobe.exe'
+```
+
+转码为 MP3 / FLAC 时另传 `--ffmpeg`；NCM 模式无需 AV3A 解码器，也不会请求在线歌曲服务。
+解密逻辑从同作者 [aural-music 的 ncm.js](https://github.com/DsirNG/aural-music/blob/main/public/api/ncm.js) 移植，内嵌标签使用 Mutagen 写入。
+本次测试使用合成的 NCM 样本；不同客户端版本生成的真实下载文件还需要进一步试用确认。
 
 我做声匣，是想把自己电脑里的网易云音乐缓存整理成能在本地播放器播放的文件。它是一款 Windows / macOS 桌面工具，支持把 .uc 缓存转换成 MP3 或 FLAC，也能补全歌曲信息、封面和歌词。
 

@@ -73,6 +73,7 @@ for size in (16, 32, 128, 256, 512):
 icon = stage / "ShengXia.icns"
 run("iconutil", "-c", "icns", iconset, "-o", icon)
 run(sys.executable, "-m", "PyInstaller", "--noconfirm", "--clean", "--windowed", "--onedir",
+    "--copy-metadata", "mutagen", "--copy-metadata", "pycryptodome",
     "--name", "ShengXia", "--icon", icon, "--osx-bundle-identifier", "com.shengxia.cacheconverter",
     "--distpath", stage / "dist", "--workpath", stage / "pyinstaller", "--specpath", stage,
     "--add-data", f"{licenses}:licenses",

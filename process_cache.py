@@ -278,6 +278,8 @@ def source_extension(info: dict) -> str:
 
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--input-type", choices=("cache", "ncm"), default="cache",
+                        help="NetEase .uc cache or downloaded .ncm files")
     parser.add_argument("--source", type=Path, default=DEFAULT_SOURCE, help=r"NetEase Cache\Cache directory")
     parser.add_argument("--output", type=Path, default=DEFAULT_OUTPUT, help="New collection folder")
     parser.add_argument("--mpv", type=Path, default=DEFAULT_MPV, help="AV3A-capable Yaoplayer.com/mpv core")
@@ -291,6 +293,17 @@ def main() -> int:
     args = parser.parse_args()
     for key in ("source", "output", "mpv", "ffmpeg", "ffprobe"):
         setattr(args, key, getattr(args, key).expanduser().resolve())
+
+    if not args.source.is_dir() or args.source == args.output or args.limit < 0:
+        print("ERROR: 请检查输入目录、输出目录和处理数量", file=sys.stderr)
+        return 2
+    if args.input_type == "ncm":
+        from process_ncm import main as convert_ncm
+        try:
+            return convert_ncm(args, pause_checkpoint)
+        except (OSError, ValueError) as exc:
+            print(f"ERROR: {exc}")
+            return 2
 
     required_tools = [("ffprobe", args.ffprobe)]
     if args.format != "source":

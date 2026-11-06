@@ -39,6 +39,7 @@ $null = New-Item -ItemType Directory -Force -Path $dist, $work, $spec
 
 $pyArgs = @(
     '-m', 'PyInstaller', '--noconfirm', '--clean', '--onedir', '--windowed',
+    '--copy-metadata', 'mutagen', '--copy-metadata', 'pycryptodome',
     '--name', '声匣缓存转换器',
     '--distpath', $dist,
     '--workpath', $work,
