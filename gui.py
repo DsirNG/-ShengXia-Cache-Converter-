@@ -19,7 +19,7 @@ import process_cache
 from cache_quality import resolve_cache_quality
 
 
-APP_TITLE = "声匣缓存转换器"
+APP_TITLE = "NCM Converter"
 DEFAULT_SOURCE = default_cache_dir()
 DEFAULT_OUTPUT = Path.home() / "Documents/声匣转换结果"
 
@@ -71,6 +71,7 @@ class App(tk.Tk):
         self.configure(bg="#f4f7f5")
         self.messages: queue.Queue = queue.Queue()
         self.source_var = tk.StringVar(value=str(DEFAULT_SOURCE))
+        self.input_type_var = tk.StringVar(value="客户端缓存（.uc）")
         self.output_var = tk.StringVar(value=str(DEFAULT_OUTPUT))
         self.limit_var = tk.StringVar(value="0")
         self.force_var = tk.BooleanVar(value=False)
@@ -117,10 +118,17 @@ class App(tk.Tk):
         brand_row.pack(anchor="w")
         if self.brand_icon is not None:
             ttk.Label(brand_row, image=self.brand_icon).pack(side="left", padx=(0, 10))
-        ttk.Label(brand_row, text="声匣缓存转换器", style="Title.TLabel").pack(side="left")
-        ttk.Label(root, text="选择 .uc 缓存目录和输出目录，转换为高品质 MP3 或 FLAC。", style="Hint.TLabel").pack(anchor="w", pady=(4, 16))
+        ttk.Label(brand_row, text=APP_TITLE, style="Title.TLabel").pack(side="left")
+        ttk.Label(root, text="网易云音乐缓存与下载文件转换工具", style="Hint.TLabel").pack(anchor="w", pady=(4, 8))
+        mode_row = ttk.Frame(root)
+        mode_row.pack(fill="x", pady=(0, 6))
+        ttk.Label(mode_row, text="输入类型", width=10).pack(side="left")
+        self.input_mode = ttk.Combobox(mode_row, textvariable=self.input_type_var, state="readonly",
+                                      values=("客户端缓存（.uc）", "下载文件（.ncm）"), width=28)
+        self.input_mode.pack(side="left")
+        self.input_mode.bind("<<ComboboxSelected>>", self._change_input_type)
 
-        self._folder_row(root, "缓存目录", self.source_var, self._choose_source)
+        self._folder_row(root, "输入目录", self.source_var, self._choose_source)
         self._folder_row(root, "输出目录", self.output_var, self._choose_output)
 
         opts = ttk.Frame(root)
@@ -133,7 +141,7 @@ class App(tk.Tk):
         ttk.Label(quality, text="输出品质").pack(side="left")
         ttk.Combobox(quality, textvariable=self.quality_var, state="readonly", width=42, values=("还原源品质（特殊编码输出兼容FLAC）", "MP3 320 kbps（推荐，兼容性好）", "FLAC（转换为立体声 FLAC）")).pack(side="left", padx=10)
         ttk.Checkbutton(root, text="覆盖同格式的已有文件（重新转换时勾选）", variable=self.force_var).pack(anchor="w", pady=(7, 0))
-        ttk.Label(root, text="音质档位读取自缓存 .info，资源标识和大小匹配时显示“已确认”；“还原源品质”保留原音频；AV3A 另生成可播放的立体声 FLAC。普通音频参数无法确认臻音全景声等空间类别。", style="Hint.TLabel", wraplength=720).pack(anchor="w", pady=(5, 10))
+        ttk.Label(root, text="缓存模式可联网补全信息；NCM 下载文件在本机解密并保留内嵌歌名、歌手和封面，无需联网。“还原源品质”保留原始编码；转为 FLAC 不会提升有损音源的音质。", style="Hint.TLabel", wraplength=720).pack(anchor="w", pady=(5, 10))
 
         actions = ttk.Frame(root)
         actions.pack(fill="x", pady=(4, 8))
@@ -187,9 +195,15 @@ class App(tk.Tk):
         ttk.Button(row, text="浏览…", command=command).pack(side="right")
 
     def _choose_source(self) -> None:
-        path = filedialog.askdirectory(title="选择网易云缓存目录", initialdir=self.source_var.get())
+        path = filedialog.askdirectory(title="选择输入文件所在目录", initialdir=self.source_var.get())
         if path:
             self.source_var.set(path)
+
+    def _change_input_type(self, _event=None) -> None:
+        if self.input_type_var.get().startswith("下载"):
+            self.quality_var.set("还原源品质（特殊编码输出兼容FLAC）")
+            if self.source_var.get() == str(DEFAULT_SOURCE):
+                self.source_var.set(str(Path.home() / "Downloads"))
 
     def _choose_output(self) -> None:
         path = filedialog.askdirectory(title="选择转换结果目录", initialdir=self.output_var.get(), mustexist=False)
@@ -236,7 +250,8 @@ class App(tk.Tk):
         force = self.force_var.get()
         selected_quality = self.quality_var.get()
         output_format = "source" if selected_quality.startswith("还原源品质") else "flac" if selected_quality.startswith("FLAC") else "mp3"
-        threading.Thread(target=self._worker, args=(source, output, limit, force, output_format), daemon=True).start()
+        input_type = "ncm" if self.input_type_var.get().startswith("下载") else "cache"
+        threading.Thread(target=self._worker, args=(source, output, limit, force, output_format, input_type), daemon=True).start()
 
     def toggle_pause(self) -> None:
         if not self.running:
@@ -259,16 +274,21 @@ class App(tk.Tk):
         self.pause_gate.wait()
         self.messages.put(("resumed", None))
 
-    def _worker(self, source: Path, output: Path, limit: int, force: bool, output_format: str) -> None:
+    def _worker(self, source: Path, output: Path, limit: int, force: bool, output_format: str, input_type: str = "cache") -> None:
         try:
             bundle = Path(getattr(sys, "_MEIPASS", Path(__file__).resolve().parent))
             mpv, ffmpeg, ffprobe = tool_paths(bundle)
-            for label, path in (("AV3A 解码器", mpv), ("FFmpeg", ffmpeg), ("FFprobe", ffprobe)):
+            required = [("FFprobe", ffprobe)]
+            if input_type == "cache":
+                required.append(("AV3A 解码器", mpv))
+            if input_type == "cache" or output_format != "source":
+                required.append(("FFmpeg", ffmpeg))
+            for label, path in required:
                 if not path.exists():
                     raise FileNotFoundError(f"缺少{label}：{path}")
             args = ["process_cache.py", "--source", str(source), "--output", str(output),
                     "--mpv", str(mpv), "--ffmpeg", str(ffmpeg), "--ffprobe", str(ffprobe),
-                    "--limit", str(limit), "--format", output_format]
+                    "--limit", str(limit), "--format", output_format, "--input-type", input_type]
             if force:
                 args.append("--force")
             old_argv = sys.argv
@@ -369,8 +389,11 @@ class App(tk.Tk):
         for index, track in enumerate(tracks):
             title = str(track.get("title") or "未知歌曲")
             artist = str(track.get("artist") or "未知歌手")
-            evidence = resolve_cache_quality(Path(data.get("source", "")) / str(track.get("cache_file", "")))
-            quality = evidence["quality_label"] + ("（已确认）" if evidence["quality_status"] == "confirmed" else "")
+            if track.get("input_type") == "ncm":
+                quality = "下载文件（原始编码）"
+            else:
+                evidence = resolve_cache_quality(Path(data.get("source", "")) / str(track.get("cache_file", "")))
+                quality = evidence["quality_label"] + ("（已确认）" if evidence["quality_status"] == "confirmed" else "")
             codec = f"{track.get("source_codec", "未知")} / {track.get("source_channels", 0)} 声道"
             track_path = str(track.get("audio_path") or "")
             output_format = str(track.get("output_format") or Path(track_path).suffix.lstrip(".") or "—").upper()
@@ -394,4 +417,7 @@ class App(tk.Tk):
 
 
 if __name__ == "__main__":
+    if os.environ.get("NCM_CONVERTER_SELF_TEST"):
+        from bundle_selftest import run
+        raise SystemExit(run(App))
     App().mainloop()

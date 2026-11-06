@@ -2,20 +2,39 @@
   <img src="assets/shengxia.png" alt="声匣 Logo" width="160">
 </p>
 
-# 声匣缓存转换器
+# NCM Converter
+
+网易云音乐缓存与下载文件转换工具，原名“声匣缓存转换器”。
+
+## 下载文件（.ncm）转换
+
+在“输入类型”选择“下载文件（.ncm）”，选择包含 NCM 文件的输入目录和独立的输出目录。
+默认推荐“还原源品质”：解密后保留原始 MP3 / FLAC 等音频编码，不重新压缩；也可以统一输出 MP3 或 FLAC。
+MP3 / FLAC 会保留 NCM 内嵌的歌名、歌手、专辑和封面，无需联网。支持当前目录批量转换，单个损坏文件不会中止其他文件。
+转换为 FLAC 不会提升有损源音质。输出文件名附带输入文件名摘要，避免同名歌曲互相覆盖。
+
+源码运行先安装 `python -m pip install -r requirements.txt`。命令行示例：
+
+```powershell
+python process_cache.py --input-type ncm --source 'C:\Music\Downloads' --output 'C:\Music\Converted' --format source --ffprobe 'C:\tools\ffprobe.exe'
+```
+
+转码为 MP3 / FLAC 时另传 `--ffmpeg`；NCM 模式无需 AV3A 解码器，也不会请求在线歌曲服务。
+解密逻辑从同作者 [aural-music 的 ncm.js](https://github.com/DsirNG/aural-music/blob/main/public/api/ncm.js) 移植，内嵌标签使用 Mutagen 写入。
+本次测试使用合成的 NCM 样本；不同客户端版本生成的真实下载文件还需要进一步试用确认。
 
 我做声匣，是想把自己电脑里的网易云音乐缓存整理成能在本地播放器播放的文件。它是一款 Windows / macOS 桌面工具，支持把 .uc 缓存转换成 MP3 或 FLAC，也能补全歌曲信息、封面和歌词。
 
-最新版本：[v0.1.6 安装包](https://github.com/DsirNG/-ShengXia-Cache-Converter-/releases/tag/v0.1.6)。
+当前候选版：[v0.2.0-rc.1 下载](https://github.com/DsirNG/ncm-converter/releases/tag/v0.2.0-rc.1)，提供 Windows x64 安装包 / 便携 ZIP 和 macOS 两种架构 DMG。
 
 ## macOS
 
-[macOS v0.1.7 下载](https://github.com/DsirNG/-ShengXia-Cache-Converter-/releases/tag/v0.1.7)：Apple Silicon 与 Intel 原生 DMG，包含音频工具，需要 macOS 15 或更新系统。安装、缓存目录、签名状态和构建说明见 [MACOS.md](MACOS.md)。
+[macOS 候选版下载](https://github.com/DsirNG/ncm-converter/releases/tag/v0.2.0-rc.1)：Apple Silicon 与 Intel 原生 DMG，包含音频工具，需要 macOS 15 或更新系统。安装、缓存目录、签名状态和构建说明见 [MACOS.md](MACOS.md)。
 
 ## 快速开始
 
-1. 在 [Releases](https://github.com/DsirNG/-ShengXia-Cache-Converter-/releases) 下载 Windows x64 安装包；如果尚未发布安装包，可按下方说明从源码构建。
-2. 打开声匣，选择网易云音乐的 Cache/Cache 缓存目录。
+1. 在 [Releases](https://github.com/DsirNG/ncm-converter/releases) 下载 Windows x64 安装包；如果尚未发布安装包，可按下方说明从源码构建。
+2. 打开 NCM Converter，选择输入类型和目录：客户端缓存（.uc）或下载文件（.ncm）。
 3. 选择输出目录和“还原源品质”、MP3 或 FLAC，开始转换；处理中可暂停并继续。
 
 ## 试听示例
@@ -33,7 +52,7 @@
 
 ## 功能
 
-- 选择 `.uc` 缓存目录和输出目录。
+- 选择 `.uc` 缓存或 `.ncm` 下载文件所在目录，以及独立输出目录。
 - “还原源品质”保留普通音频的原始容器。遇到 AV3A 时，原音频保存在 `originals/`，另生成供普通播放器播放的立体声 FLAC；兼容版本不保留原始空间效果。也可统一转换为 320 kbps MP3 或立体声 FLAC。
 - 音质档位读取自缓存 `.info` 的 `level` 字段；记录中的资源 MD5 与缓存文件名、资源大小均匹配时，显示“已确认”。支持标准、较高、极高 HQ、无损 SQ、高清臻音、超清母带、臻音全景声；缺失、损坏或不匹配时显示“档位未知”。此校验是资源记录绑定，不是逐字节音频 MD5 验证。
 - 编码和声道数单独展示，不再作为网易云档位名称。已有结果可在原输出目录点击“刷新”，根据仍存在的源缓存重新确认档位。
@@ -47,7 +66,9 @@
 ## 源码结构
 
 - `gui.py`：独立 Tkinter 图形界面。
-- `process_cache.py`：缓存处理模块，默认路径使用当前用户目录，可通过环境变量覆盖。
+- `process_cache.py`：缓存处理与命令行入口。
+- `ncm_decoder.py` / `process_ncm.py`：NCM 解密、标签和批量转换。
+- `verify_bundle.py`：合成样本及打包后六种转换流程的验证。
 - `assets/shengxia.png`：声匣图形 logo。
 - `assets/shengxia.ico`：Windows 程序和安装包图标。
 - `installer/shengxia.iss`：Inno Setup 安装包配置。
@@ -60,7 +81,7 @@
 - `python -m pip install -r requirements-build.txt`
 - AV3A 解码器目录（包含 `Yaoplayer.com` 和运行所需文件）
 - FFmpeg `bin` 目录（包含 `ffmpeg.exe`、`ffprobe.exe`）
-- Inno Setup 7 编译器 `ISCC.exe`
+- Inno Setup 6 或 7 编译器 `ISCC.exe`
 
 可以通过参数或环境变量传入工具目录：
 
@@ -73,7 +94,7 @@
 
 也可以设置 `MPV_CORE_DIR`、`FFMPEG_BIN_DIR`、`INNO_SETUP_COMPILER` 后运行 `.\build.ps1`。
 
-构建出的安装包在 `artifacts\ShengXiaCacheConverter-Setup-0.1.6-x64.exe`。安装程序默认安装到当前用户的 `%LOCALAPPDATA%\Programs\ShengXiaCacheConverter`，不需要管理员权限。
+构建出的安装包在 `artifacts\NCM-Converter-0.2.0-rc.1-Windows-x64-Setup.exe`。安装程序默认安装到当前用户的 `%LOCALAPPDATA%\Programs\ShengXiaCacheConverter`，不需要管理员权限。
 
 ## 数据与网络
 

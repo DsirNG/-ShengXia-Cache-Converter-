@@ -9,9 +9,9 @@ import subprocess
 import sys
 import urllib.request
 from pathlib import Path
+from app_version import VERSION, NUMERIC_VERSION
 
 ROOT = Path(__file__).resolve().parent
-VERSION = "0.1.7"
 TAG = "mpv-iina-avs-ffmpeg-9.0.2-mpv-v0.41.0-20261023-033837"
 ARCH = platform.machine()
 if sys.platform != "darwin" or ARCH != os.environ.get("EXPECTED_ARCH", ARCH):
@@ -73,25 +73,28 @@ for size in (16, 32, 128, 256, 512):
 icon = stage / "ShengXia.icns"
 run("iconutil", "-c", "icns", iconset, "-o", icon)
 run(sys.executable, "-m", "PyInstaller", "--noconfirm", "--clean", "--windowed", "--onedir",
-    "--name", "ShengXia", "--icon", icon, "--osx-bundle-identifier", "com.shengxia.cacheconverter",
+    "--copy-metadata", "mutagen", "--copy-metadata", "pycryptodome",
+    "--name", "NCM Converter", "--icon", icon, "--osx-bundle-identifier", "com.shengxia.cacheconverter",
     "--distpath", stage / "dist", "--workpath", stage / "pyinstaller", "--specpath", stage,
     "--add-data", f"{licenses}:licenses",
     "--add-data", f"{ROOT / 'assets/shengxia.png'}:assets", ROOT / "gui.py")
-app = stage / "dist/ShengXia.app"
+app = stage / "dist/NCM Converter.app"
 # Keep each relocatable tool dependency tree intact; never flatten same-name dylibs.
 run("ditto", tools, app / "Contents/Resources/tools/ffmpeg")
 run("ditto", stage / "encoder", app / "Contents/Resources/tools/encoder")
 plist_path = app / "Contents/Info.plist"
 with plist_path.open("rb") as f:
     info = plistlib.load(f)
-info.update({"CFBundleDisplayName": "声匣缓存转换器", "CFBundleShortVersionString": VERSION,
-             "CFBundleVersion": VERSION, "NSHighResolutionCapable": True, "LSMinimumSystemVersion": "15.0"})
+info.update({"CFBundleDisplayName": "NCM Converter", "CFBundleShortVersionString": NUMERIC_VERSION,
+             "CFBundleVersion": "20001", "NSHighResolutionCapable": True, "LSMinimumSystemVersion": "15.0"})
 with plist_path.open("wb") as f:
     plistlib.dump(info, f)
 run("codesign", "--force", "--deep", "--sign", "-", app)
 run("codesign", "--verify", "--deep", "--strict", app)
 smoke_env = dict(os.environ, SHENGXIA_SMOKE_TEST="1")
-subprocess.run([str(app / "Contents/MacOS/ShengXia")], env=smoke_env, check=True, timeout=30)
+subprocess.run([str(app / "Contents/MacOS/NCM Converter")], env=smoke_env, check=True, timeout=30)
+run(sys.executable, ROOT / "verify_bundle.py", "--app", app / "Contents/MacOS/NCM Converter",
+    "--ffmpeg", encoder, "--work", stage / "bundle-check")
 for binary in app.glob("Contents/Resources/tools/**/ffmpeg"):
     if binary.is_file():
         run(binary, "-version")
@@ -100,12 +103,13 @@ for binary in app.glob("Contents/Resources/tools/**/ffprobe"):
         run(binary, "-version")
 image = stage / "image"
 image.mkdir(exist_ok=True)
-run("ditto", app, image / "ShengXia.app")
+run("ditto", app, image / "NCM Converter.app")
 applications = image / "Applications"
 if not applications.exists():
     applications.symlink_to("/Applications")
 out = ROOT / "artifacts"
 out.mkdir(exist_ok=True)
-dmg = out / f"ShengXia-{VERSION}-macOS-{ARCH}.dmg"
-run("hdiutil", "create", "-volname", "ShengXia", "-srcfolder", image, "-ov", "-format", "UDZO", dmg)
+dmg = out / f"NCM-Converter-{VERSION}-macOS-{ARCH}.dmg"
+run("hdiutil", "create", "-volname", "NCM Converter", "-srcfolder", image, "-ov", "-format", "UDZO", dmg)
+run("hdiutil", "verify", dmg)
 print(f"Built {dmg}")

@@ -1,13 +1,14 @@
-﻿#define AppName "声匣缓存转换器"
-#define AppVersion "0.1.6"
-#define AppExeName "声匣缓存转换器.exe"
+﻿#define AppName "NCM Converter"
+#define AppVersion "0.2.0-rc.1"
+#define AppExeName "NCM-Converter.exe"
 
 [Setup]
 AppId={{A6D3A9D1-5B28-4E86-9E2E-03C974DC9331}
 AppName={#AppName}
 AppVersion={#AppVersion}
 LicenseFile=..\LICENSE
-AppPublisher=声匣
+AppPublisher=DsirNG
+VersionInfoVersion=0.2.0.0
 DefaultDirName={localappdata}\Programs\ShengXiaCacheConverter
 DisableDirPage=no
 DefaultGroupName={#AppName}
@@ -20,7 +21,7 @@ DisableProgramGroupPage=yes
 WizardStyle=modern
 SetupIconFile=..\assets\shengxia.ico
 OutputDir=..\artifacts
-OutputBaseFilename=ShengXiaCacheConverter-Setup-{#AppVersion}-x64
+OutputBaseFilename=NCM-Converter-{#AppVersion}-Windows-x64-Setup
 Compression=lzma2/fast
 SolidCompression=yes
 Uninstallable=yes
@@ -28,13 +29,13 @@ CloseApplications=yes
 RestartApplications=no
 
 [Languages]
-Name: "chinesesimp"; MessagesFile: "compiler:Languages\ChineseSimplified.isl"
+Name: "chinesesimp"; MessagesFile: "Languages\ChineseSimplified.isl"
 
 [Tasks]
 Name: "desktopicon"; Description: "创建桌面快捷方式"; GroupDescription: "附加快捷方式："; Flags: unchecked
 
 [Files]
-Source: "..\build\app\声匣缓存转换器\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs createallsubdirs
+Source: "..\build\app\NCM-Converter\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs createallsubdirs
 
 [Icons]
 Name: "{autoprograms}\{#AppName}"; Filename: "{app}\{#AppExeName}"; WorkingDir: "{app}"

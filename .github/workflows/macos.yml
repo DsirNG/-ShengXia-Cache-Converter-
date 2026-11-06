@@ -1,8 +1,25 @@
-name: Build macOS DMG
+name: Build Windows installer and macOS DMGs
 on:
   workflow_dispatch:
+    inputs:
+      platform:
+        type: choice
+        options: [all, windows, macos, publish]
+        default: all
+      artifact_runs:
+        description: Comma-separated successful artifact run IDs for publish mode
+        default: ''
+permissions:
+  contents: write
+  actions: read
 jobs:
+  windows:
+    if: inputs.platform != 'macos' && inputs.platform != 'publish'
+    uses: ./.github/workflows/windows.yml
+    with:
+      tools_release: v0.2.0-rc.1
   build:
+    if: inputs.platform != 'windows' && inputs.platform != 'publish'
     strategy:
       fail-fast: false
       matrix:
@@ -19,11 +36,30 @@ jobs:
           python-version: '3.12'
       - run: brew list ffmpeg >/dev/null 2>&1 || brew install ffmpeg
       - run: python -m pip install -r requirements-build.txt
+      - name: Unit and audio integration tests
+        run: FFMPEG_BIN_DIR="$(brew --prefix)/bin" python -m unittest discover -v
       - name: Build and check application
         env:
           EXPECTED_ARCH: ${{ matrix.arch }}
         run: python build_macos.py
       - uses: actions/upload-artifact@v4
         with:
-          name: ShengXia-macOS-${{ matrix.arch }}
+          name: NCM-Converter-macOS-${{ matrix.arch }}
           path: artifacts/*.dmg
+          if-no-files-found: error
+  publish:
+    if: inputs.platform == 'publish'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Upload verified build artifacts to draft release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          ARTIFACT_RUNS: ${{ inputs.artifact_runs }}
+        run: |
+          [[ "$ARTIFACT_RUNS" =~ ^[0-9]+(,[0-9]+)*$ ]] || exit 1
+          IFS=',' read -ra runs <<< "$ARTIFACT_RUNS"
+          for run in "${runs[@]}"; do
+            gh run download "$run" --repo "$GITHUB_REPOSITORY" --dir "downloads/$run"
+          done
+          find downloads -type f \( -name '*.dmg' -o -name '*-Setup.exe' -o -name '*-Portable.zip' \) -print0 |
+            xargs -0 -r gh release upload v0.2.0-rc.1 --repo "$GITHUB_REPOSITORY" --clobber
