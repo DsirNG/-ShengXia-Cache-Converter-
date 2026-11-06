@@ -19,6 +19,7 @@ import shutil
 import subprocess
 import sys
 import time
+import traceback
 import urllib.error
 import urllib.parse
 import urllib.request
@@ -115,7 +116,10 @@ def safe_name(value: str, fallback: str) -> str:
 
 
 def run(cmd: list[str], cwd: Path, timeout: int) -> subprocess.CompletedProcess:
-    return subprocess.run(cmd, cwd=cwd, capture_output=True, text=True, timeout=timeout)
+    # FFmpeg emits UTF-8 paths, which may not decode with Windows' locale codec.
+    # A pipe-reader decoding error otherwise leaves stdout/stderr as None.
+    return subprocess.run(cmd, cwd=cwd, capture_output=True, text=True,
+                          encoding="utf-8", errors="replace", timeout=timeout)
 
 
 def decode_uc(source: Path, decoded: Path) -> None:
@@ -164,6 +168,13 @@ def fetch_cover(url: str, destination: Path, ffprobe: Path) -> bool:
                 query["param"] = "1000y1000"
                 candidates.append(urllib.parse.urlunsplit(parsed._replace(query=urllib.parse.urlencode(query))))
         candidates.append(url)
+    except OSError as exc:
+        # Creating an HTTPS opener can fail before any request is sent (for
+        # example SSL initialization in a frozen Windows application).
+        # Artwork is optional and must not abort an otherwise valid conversion.
+        destination.unlink(missing_ok=True)
+        print(f"  封面获取失败，继续转换音频：{exc}", flush=True)
+        return False
     except ValueError:
         candidates = [url]
     for candidate in dict.fromkeys(candidates):
@@ -388,7 +399,8 @@ def main() -> int:
                                     "-af", "astats=metadata=0:reset=0", "-f", "null", os.devnull], args.ffmpeg.parent, 900)
                     peaks = re.findall(r"Peak level dB:\s*([-+0-9.eE]+)", measured.stderr)
                     if measured.returncode or not peaks:
-                        raise RuntimeError("Could not measure decoded audio peak; conversion stopped")
+                        raise RuntimeError("Could not measure decoded audio peak; conversion stopped: "
+                                           + measured.stderr.strip()[-1200:])
                     peak_db = max(float(x) for x in peaks)
                     attenuation_db = max(0.0, peak_db + 1.0)
                     record.update({"decoded_peak_dbfs": round(peak_db, 3), "attenuation_db": round(attenuation_db, 3)})
@@ -426,11 +438,12 @@ def main() -> int:
                 if fetch_optional(lrc_url, lrc):
                     shutil.copy2(lrc, ready_dir / f"{stem}.lrc")
                     record["lyrics_path"] = str(lrc)
-            if meta.get("pic"):
+            if (cover_dir / f"{song_id}.jpg").is_file():
                 record["cover_path"] = str(cover_dir / f"{song_id}.jpg")
         except Exception as exc:  # retain per-track failures and continue the batch
             record["status"] = "failed"
             record["error"] = str(exc)
+            record["error_traceback"] = traceback.format_exc()
             print(f"  转换失败：{exc}", flush=True)
         finally:
             if not args.keep_decoded:
